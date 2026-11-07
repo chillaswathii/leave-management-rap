@@ -1,0 +1,24 @@
+@EndUserText.label: 'Leave Request Projection'
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@Metadata.allowExtensions: true
+define root view entity Z708_C_LeaveReq
+  provider contract transactional_query
+  as projection on Z708_I_LeaveReq
+{
+  key LeaveId,
+      EmployeeId,
+      LeaveType,
+      StartDate,
+      EndDate,
+      LeaveDays,
+      Reason,
+            @ObjectModel.text.element: [ 'StatusText' ]
+      Status,
+      StatusText,
+      StatusCriticality,
+      CreatedBy,
+      CreatedAt,
+      LastChangedBy,
+      LastChangedAt,
+      LocalLastChangedAt
+}

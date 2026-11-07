@@ -1,0 +1,31 @@
+CLASS zcl_708_leave_test DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    INTERFACES if_oo_adt_classrun.
+ENDCLASS.
+
+CLASS zcl_708_leave_test IMPLEMENTATION.
+  METHOD if_oo_adt_classrun~main.
+    MODIFY ENTITIES OF z708_i_leavereq
+      ENTITY LeaveRequest
+      CREATE FIELDS ( EmployeeId LeaveType StartDate EndDate Reason )
+      WITH VALUE #( ( %cid       = 'c1'
+                      EmployeeId = 'E001'
+                      LeaveType  = 'AL'
+                      StartDate  = '20261116'
+                      EndDate    = '20261118'
+                      Reason     = 'Test leave' ) )
+      MAPPED DATA(mapped)
+      FAILED DATA(failed)
+      REPORTED DATA(reported).
+
+    COMMIT ENTITIES RESPONSE OF z708_i_leavereq
+      FAILED DATA(failed_commit)
+      REPORTED DATA(reported_commit).
+
+    SELECT FROM z708_leave_req
+      FIELDS employee_id, start_date, end_date, leave_days, status
+      INTO TABLE @DATA(rows).
+
+    out->write( rows ).
+  ENDMETHOD.
+ENDCLASS.

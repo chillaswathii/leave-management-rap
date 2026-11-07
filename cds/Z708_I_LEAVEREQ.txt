@@ -1,0 +1,37 @@
+@AccessControl.authorizationCheck: #NOT_REQUIRED
+@EndUserText.label: 'Leave Request'
+define root view entity Z708_I_LeaveReq
+  as select from z708_leave_req
+{
+  key leave_id          as LeaveId,
+      employee_id       as EmployeeId,
+      leave_type        as LeaveType,
+      start_date        as StartDate,
+      end_date          as EndDate,
+      leave_days        as LeaveDays,
+      reason            as Reason,
+      status            as Status,
+            case status
+        when 'S' then 'Submitted'
+        when 'A' then 'Approved'
+        when 'R' then 'Rejected'
+        else 'Unknown'
+      end                   as StatusText,
+
+      case status
+        when 'A' then 3
+        when 'R' then 1
+        else 2
+      end                   as StatusCriticality,
+
+      @Semantics.user.createdBy: true
+      created_by        as CreatedBy, 
+      @Semantics.systemDateTime.createdAt: true
+      created_at        as CreatedAt,
+      @Semantics.user.lastChangedBy: true
+      last_changed_by   as LastChangedBy,
+      @Semantics.systemDateTime.lastChangedAt: true
+      last_changed_at   as LastChangedAt,
+      @Semantics.systemDateTime.localInstanceLastChangedAt: true
+      local_last_changed_at as LocalLastChangedAt
+}

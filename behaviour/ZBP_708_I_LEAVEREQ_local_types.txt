@@ -1,0 +1,196 @@
+CLASS lhc_LeaveRequest DEFINITION INHERITING FROM cl_abap_behavior_handler.
+  PRIVATE SECTION.
+    METHODS setInitialStatus FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR LeaveRequest~setInitialStatus.
+    METHODS calculateDays FOR DETERMINE ON MODIFY
+      IMPORTING keys FOR LeaveRequest~calculateDays.
+        METHODS validateDates FOR VALIDATE ON SAVE
+      IMPORTING keys FOR LeaveRequest~validateDates.
+          METHODS validateOverlap FOR VALIDATE ON SAVE
+      IMPORTING keys FOR LeaveRequest~validateOverlap.
+          METHODS validateBalance FOR VALIDATE ON SAVE
+      IMPORTING keys FOR LeaveRequest~validateBalance.
+          METHODS approve FOR MODIFY
+      IMPORTING keys FOR ACTION LeaveRequest~approve RESULT result.
+    METHODS reject FOR MODIFY
+      IMPORTING keys FOR ACTION LeaveRequest~reject RESULT result.
+    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
+      IMPORTING REQUEST requested_authorizations FOR LeaveRequest RESULT result.
+ENDCLASS.
+
+CLASS lhc_LeaveRequest IMPLEMENTATION.
+
+  METHOD setInitialStatus.
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest FIELDS ( Status )
+      WITH CORRESPONDING #( keys ) RESULT DATA(requests).
+
+    DELETE requests WHERE Status IS NOT INITIAL.
+    CHECK requests IS NOT INITIAL.
+
+    MODIFY ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest UPDATE FIELDS ( Status )
+      WITH VALUE #( FOR r IN requests ( %tky = r-%tky Status = 'S' ) ).
+  ENDMETHOD.
+
+  METHOD calculateDays.
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest FIELDS ( StartDate EndDate )
+      WITH CORRESPONDING #( keys ) RESULT DATA(requests).
+
+    DATA updates TYPE TABLE FOR UPDATE z708_i_leavereq.
+
+    LOOP AT requests INTO DATA(request).
+      IF request-StartDate IS NOT INITIAL
+         AND request-EndDate IS NOT INITIAL
+         AND request-EndDate >= request-StartDate.
+        APPEND VALUE #( %tky      = request-%tky
+                        LeaveDays = request-EndDate - request-StartDate + 1 )
+          TO updates.
+      ENDIF.
+    ENDLOOP.
+
+    CHECK updates IS NOT INITIAL.
+
+    MODIFY ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest UPDATE FIELDS ( LeaveDays )
+      WITH updates.
+  ENDMETHOD.
+
+
+    METHOD validateDates.
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest FIELDS ( StartDate EndDate )
+      WITH CORRESPONDING #( keys ) RESULT DATA(requests).
+
+    LOOP AT requests INTO DATA(request).
+      IF request-EndDate < request-StartDate.
+        APPEND VALUE #( %tky = request-%tky ) TO failed-leaverequest.
+        APPEND VALUE #( %tky = request-%tky
+                        %msg = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'End date cannot be before start date' )
+                        %element-enddate = if_abap_behv=>mk-on )
+          TO reported-leaverequest.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+    METHOD validateOverlap.
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest FIELDS ( EmployeeId StartDate EndDate )
+      WITH CORRESPONDING #( keys ) RESULT DATA(requests).
+
+    LOOP AT requests INTO DATA(request).
+      SELECT COUNT(*) FROM z708_leave_req
+        WHERE employee_id = @request-EmployeeId
+          AND leave_id   <> @request-LeaveId
+          AND status     <> 'R'
+          AND start_date <= @request-EndDate
+          AND end_date   >= @request-StartDate
+        INTO @DATA(overlap_count).
+
+      IF overlap_count > 0.
+        APPEND VALUE #( %tky = request-%tky ) TO failed-leaverequest.
+        APPEND VALUE #( %tky = request-%tky
+                        %msg = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'Leave overlaps with an existing request' )
+                        %element-startdate = if_abap_behv=>mk-on )
+          TO reported-leaverequest.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+    METHOD validateBalance.
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest FIELDS ( EmployeeId LeaveDays )
+      WITH CORRESPONDING #( keys ) RESULT DATA(requests).
+
+    LOOP AT requests INTO DATA(request).
+      SELECT SINGLE total_days FROM z708_leave_quota
+        WHERE employee_id = @request-EmployeeId
+        INTO @DATA(quota).
+
+      IF sy-subrc <> 0.
+        APPEND VALUE #( %tky = request-%tky ) TO failed-leaverequest.
+        APPEND VALUE #( %tky = request-%tky
+                        %msg = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'No leave quota found for this employee' )
+                        %element-employeeid = if_abap_behv=>mk-on )
+          TO reported-leaverequest.
+        CONTINUE.
+      ENDIF.
+
+      SELECT SUM( leave_days ) FROM z708_leave_req
+        WHERE employee_id = @request-EmployeeId
+          AND status      = 'A'
+          AND leave_id   <> @request-LeaveId
+        INTO @DATA(used_days).
+
+      IF used_days + request-LeaveDays > quota.
+        APPEND VALUE #( %tky = request-%tky ) TO failed-leaverequest.
+        APPEND VALUE #( %tky = request-%tky
+                        %msg = new_message_with_text(
+                                 severity = if_abap_behv_message=>severity-error
+                                 text     = 'Request exceeds the available leave balance' )
+                        %element-enddate = if_abap_behv=>mk-on )
+          TO reported-leaverequest.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+
+    METHOD approve.
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest FIELDS ( Status )
+      WITH CORRESPONDING #( keys ) RESULT DATA(requests).
+
+    DATA updates TYPE TABLE FOR UPDATE z708_i_leavereq.
+
+    LOOP AT requests INTO DATA(request) WHERE Status = 'S'.
+      APPEND VALUE #( %tky = request-%tky Status = 'A' ) TO updates.
+    ENDLOOP.
+
+    IF updates IS NOT INITIAL.
+      MODIFY ENTITIES OF z708_i_leavereq IN LOCAL MODE
+        ENTITY LeaveRequest UPDATE FIELDS ( Status )
+        WITH updates.
+    ENDIF.
+
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest ALL FIELDS
+      WITH CORRESPONDING #( keys ) RESULT DATA(updated).
+
+    result = VALUE #( FOR u IN updated ( %tky = u-%tky %param = u ) ).
+  ENDMETHOD.
+
+  METHOD reject.
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest FIELDS ( Status )
+      WITH CORRESPONDING #( keys ) RESULT DATA(requests).
+
+    DATA updates TYPE TABLE FOR UPDATE z708_i_leavereq.
+
+    LOOP AT requests INTO DATA(request) WHERE Status = 'S'.
+      APPEND VALUE #( %tky = request-%tky Status = 'R' ) TO updates.
+    ENDLOOP.
+
+    IF updates IS NOT INITIAL.
+      MODIFY ENTITIES OF z708_i_leavereq IN LOCAL MODE
+        ENTITY LeaveRequest UPDATE FIELDS ( Status )
+        WITH updates.
+    ENDIF.
+
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest ALL FIELDS
+      WITH CORRESPONDING #( keys ) RESULT DATA(updated).
+
+    result = VALUE #( FOR u IN updated ( %tky = u-%tky %param = u ) ).
+  ENDMETHOD.
+
+
+  METHOD get_global_authorizations.
+  ENDMETHOD.
+
+ENDCLASS.

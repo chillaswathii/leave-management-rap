@@ -1,0 +1,28 @@
+CLASS zcl_708_leave_approve DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    INTERFACES if_oo_adt_classrun.
+ENDCLASS.
+
+CLASS zcl_708_leave_approve IMPLEMENTATION.
+  METHOD if_oo_adt_classrun~main.
+    SELECT SINGLE leave_id FROM z708_leave_req
+      WHERE employee_id = 'E001' AND start_date = '20261115'
+      INTO @DATA(id).
+
+    MODIFY ENTITIES OF z708_i_leavereq
+      ENTITY LeaveRequest
+      EXECUTE reject FROM VALUE #( ( %key-LeaveId = id ) )
+      FAILED DATA(failed)
+      REPORTED DATA(reported).
+
+    COMMIT ENTITIES RESPONSE OF z708_i_leavereq
+      FAILED DATA(failed_commit)
+      REPORTED DATA(reported_commit).
+
+    SELECT FROM z708_leave_req
+      FIELDS employee_id, start_date, end_date, leave_days, status
+      INTO TABLE @DATA(rows).
+
+    out->write( rows ).
+  ENDMETHOD.
+ENDCLASS.

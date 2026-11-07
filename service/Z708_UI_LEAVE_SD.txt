@@ -1,0 +1,4 @@
+@EndUserText.label: 'Leave Management Service'
+define service Z708_UI_LEAVE_SD {
+  expose Z708_C_LeaveReq as LeaveRequest;
+}

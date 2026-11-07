@@ -1,0 +1,28 @@
+CLASS zcl_708_leave_seed DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    INTERFACES if_oo_adt_classrun .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+ENDCLASS.
+
+
+
+CLASS zcl_708_leave_seed IMPLEMENTATION.
+
+
+  METHOD if_oo_adt_classrun~main.
+  DELETE FROM z708_leave_quota.
+
+    INSERT z708_leave_quota FROM TABLE @( VALUE #(
+      ( employee_id = 'E001' total_days = 20 )
+      ( employee_id = 'E002' total_days = 15 )
+      ( employee_id = 'E003' total_days = 10 ) ) ).
+
+    out->write( 'Quota data inserted' ).
+  ENDMETHOD.
+ENDCLASS.

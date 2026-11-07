@@ -1,0 +1,12 @@
+@EndUserText.label : 'leave quota'
+@AbapCatalog.enhancement.category : #NOT_EXTENSIBLE
+@AbapCatalog.tableCategory : #TRANSPARENT
+@AbapCatalog.deliveryClass : #A
+@AbapCatalog.dataMaintenance : #RESTRICTED
+define table z708_leave_quota {
+
+  key client      : abap.clnt not null;
+  key employee_id : abap.char(10) not null;
+  total_days      : abap.int4;
+
+}
