@@ -1,6 +1,6 @@
 # Employee Leave Management System (SAP ABAP Cloud, RAP)
 
-A draft-enabled, managed RAP business object for leave requests with a Fiori Elements UI, built with ABAP Cloud on SAP BTP.
+A draft-enabled, managed RAP business object for leave requests with a Fiori Elements UI, built with ABAP Cloud using ADT on an SAP Learning practice system.
 
 ## What it does
 - Employees create leave requests; the system sets the status and calculates the days.
