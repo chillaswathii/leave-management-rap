@@ -27,7 +27,7 @@ Database tables (with a draft table), then CDS interface view, then managed beha
 ## Project structure
 - `tables/` database tables, including the draft table
 - `cds/` interface and projection views
-- `behavior/` behavior definitions and the implementation class
+- `behaviour/` behaviour definitions and the implementation class
 - `ui/` UI annotations (metadata extension)
 - `service/` service definition
 - `tests/` console classes used to test the logic
