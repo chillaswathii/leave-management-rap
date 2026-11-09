@@ -14,6 +14,9 @@ CLASS lhc_LeaveRequest DEFINITION INHERITING FROM cl_abap_behavior_handler.
       IMPORTING keys FOR ACTION LeaveRequest~approve RESULT result.
     METHODS reject FOR MODIFY
       IMPORTING keys FOR ACTION LeaveRequest~reject RESULT result.
+          METHODS get_instance_features FOR INSTANCE FEATURES
+      IMPORTING keys REQUEST requested_features FOR LeaveRequest
+      RESULT result.
     METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
       IMPORTING REQUEST requested_authorizations FOR LeaveRequest RESULT result.
 ENDCLASS.
@@ -189,6 +192,23 @@ CLASS lhc_LeaveRequest IMPLEMENTATION.
     result = VALUE #( FOR u IN updated ( %tky = u-%tky %param = u ) ).
   ENDMETHOD.
 
+
+    METHOD get_instance_features.
+    READ ENTITIES OF z708_i_leavereq IN LOCAL MODE
+      ENTITY LeaveRequest FIELDS ( Status )
+      WITH CORRESPONDING #( keys ) RESULT DATA(requests).
+
+    result = VALUE #( FOR r IN requests
+      ( %tky = r-%tky
+        %action-approve = COND #( WHEN r-%is_draft = if_abap_behv=>mk-on
+                                    OR r-Status <> 'S'
+                                  THEN if_abap_behv=>fc-o-disabled
+                                  ELSE if_abap_behv=>fc-o-enabled )
+        %action-reject  = COND #( WHEN r-%is_draft = if_abap_behv=>mk-on
+                                    OR r-Status <> 'S'
+                                  THEN if_abap_behv=>fc-o-disabled
+                                  ELSE if_abap_behv=>fc-o-enabled ) ) ).
+  ENDMETHOD.
 
   METHOD get_global_authorizations.
   ENDMETHOD.

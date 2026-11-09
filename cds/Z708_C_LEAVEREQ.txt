@@ -5,15 +5,31 @@ define root view entity Z708_C_LeaveReq
   provider contract transactional_query
   as projection on Z708_I_LeaveReq
 {
+  
   key LeaveId,
+
+      @EndUserText.label: 'Employee ID'
       EmployeeId,
+
+      @EndUserText.label: 'Leave Type'
       LeaveType,
+
+      @EndUserText.label: 'Start Date'
       StartDate,
+
+      @EndUserText.label: 'End Date'
       EndDate,
+
+      @EndUserText.label: 'Leave Days'
       LeaveDays,
+
+      @EndUserText.label: 'Reason'
       Reason,
-            @ObjectModel.text.element: [ 'StatusText' ]
+
+      @EndUserText.label: 'Status'
+      @ObjectModel.text.element: [ 'StatusText' ]
       Status,
+
       StatusText,
       StatusCriticality,
       CreatedBy,
@@ -21,4 +37,5 @@ define root view entity Z708_C_LeaveReq
       LastChangedBy,
       LastChangedAt,
       LocalLastChangedAt
+
 }

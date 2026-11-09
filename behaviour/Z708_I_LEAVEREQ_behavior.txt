@@ -1,9 +1,11 @@
 managed implementation in class zbp_708_i_leavereq unique;
 strict ( 2 );
+with draft;
 
 define behavior for Z708_I_LeaveReq alias LeaveRequest
 persistent table z708_leave_req
-lock master
+draft table z708_leave_d
+lock master total etag LastChangedAt
 authorization master ( global )
 etag master LocalLastChangedAt
 {
@@ -20,8 +22,18 @@ etag master LocalLastChangedAt
         validation validateDates on save { create; field StartDate, EndDate; }
           validation validateOverlap on save { create; field StartDate, EndDate, EmployeeId; }
          validation validateBalance on save { create; field StartDate, EndDate, EmployeeId, Status; }
-            action approve result [1] $self;
-            action reject  result [1] $self;
+               action ( features : instance ) approve result [1] $self;
+                action ( features : instance ) reject  result [1] $self;
+              draft action Edit;
+  draft action Activate optimized;
+  draft action Discard;
+  draft action Resume;
+  draft determine action Prepare
+  {
+    validation validateDates;
+    validation validateOverlap;
+    validation validateBalance;
+  }
 
   mapping for z708_leave_req
   {

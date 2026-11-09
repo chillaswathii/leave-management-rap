@@ -1,14 +1,15 @@
 # Employee Leave Management System (SAP ABAP Cloud, RAP)
 
-A managed RAP business object for leave requests, built with ABAP Cloud on SAP BTP.
+A draft-enabled, managed RAP business object for leave requests with a Fiori Elements UI, built with ABAP Cloud on SAP BTP.
 
 ## What it does
 - Employees create leave requests; the system sets the status and calculates the days.
 - Validations block bad data: invalid dates, overlapping leaves, and requests above the leave quota.
 - Managers approve or reject requests through custom actions.
+- Users can save work in progress as a draft before creating the request.
 
 ## Architecture
-Database tables, then CDS interface view, then managed behavior definition, then projection view and projection behavior, then metadata extension (UI annotations), then service definition and OData V4 UI service binding.
+Database tables (with a draft table), then CDS interface view, then managed behavior definition with draft, then projection view and projection behavior, then metadata extension (UI annotations), then service definition and OData V4 UI service binding.
 
 ## Features
 | Feature | Type | Description |
@@ -19,10 +20,12 @@ Database tables, then CDS interface view, then managed behavior definition, then
 | Overlap check | Validation | No overlapping requests for the same employee |
 | Balance check | Validation | Approved days plus the request cannot exceed quota |
 | Approve / Reject | Actions | Change status only from S to A or R |
+| Feature control | Instance features | Approve and Reject are enabled only on saved requests in status S |
+| Draft handling | RAP draft | Users save work in progress before creating the request |
 | Status text and colors | CDS | Shows Submitted, Approved or Rejected with criticality |
 
 ## Project structure
-- `tables/` database tables
+- `tables/` database tables, including the draft table
 - `cds/` interface and projection views
 - `behavior/` behavior definitions and the implementation class
 - `ui/` UI annotations (metadata extension)
@@ -31,15 +34,23 @@ Database tables, then CDS interface view, then managed behavior definition, then
 - `screenshots/` proof of each test
 
 ## Testing
-Logic was tested with ABAP console classes using EML (Entity Manipulation Language). Screenshots of each test are in the `screenshots` folder.
+Logic was tested with ABAP console classes using EML (Entity Manipulation Language) and through the Fiori Elements app (create, validations, approve, reject). Screenshots are in the `screenshots` folder.
 
 ## Known limitations
 - Leave days include weekends and public holidays.
 - The overlap check reads only saved data.
-- The Fiori preview could not be run on the training system because of a UCON restriction.
+- Authorization is global, so any user can approve. Instance authorization is a planned improvement.
+- The employee ID is typed by the user and not taken from the logged-in user.
+- The app was tested through the ADT preview and is not deployed to a Fiori Launchpad.
+
+## Possible improvements
+- Instance authorization so only managers can approve
+- Value help for leave types
+- Holiday-aware day calculation
+- ABAP Unit tests
 
 ## Tech stack
-ABAP Cloud, RAP, CDS, EML, OData V4, Fiori Elements annotations
+ABAP Cloud, RAP (managed, draft), CDS, EML, OData V4, Fiori Elements annotations
 
 ## Author
-chilla swathi
+Chilla Swathi
